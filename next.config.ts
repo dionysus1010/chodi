@@ -2,19 +2,19 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
-  devIndicators: false,
+  appDir: true,
   webpack: (config) => {
-    // This helps prevent issues with Node.js modules in the browser
     config.resolve.fallback = { 
       ...config.resolve.fallback,
       fs: false,
       path: false,
       os: false,
       child_process: false,
-      
     };
     return config;
+  },
+  env: {
+    DATABASE_URL: process.env.DATABASE_URL,
   },
 };
 

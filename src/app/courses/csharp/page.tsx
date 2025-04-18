@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import CsharpEditor from "../../components/editors/CSharpEditor/CSharpEditor";
 
-const lessons = require("../../../lessons/csharp_lesson.json");
+import lessons from "../../../lessons/csharp_lesson.json";
 
 interface User {
   username: string;
@@ -25,6 +25,7 @@ export default function CsharpCourses() {
   const [lastOutput, setLastOutput] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const editorRef = useRef<any>(null);
+  const [hasCertificate, setHasCertificate] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -93,6 +94,68 @@ export default function CsharpCourses() {
   useEffect(() => {
     setLastOutput(null);
   }, [selectedLesson]);
+
+  // For checking certificates
+  const checkCertificates = async () => {
+    try {
+      const response = await fetch(`/api/certificates?userId=${userId}&courseId=csharp`);
+      if (!response.ok) throw new Error('Failed to check certificates');
+      return await response.json();
+    } catch (error) {
+      console.error('Certificate check failed:', error);
+      return [];
+    }
+  };
+  
+    useEffect(() => {
+      const checkCertificate = async () => {
+        if (userId && csharpLessons.length > 0) {
+          try {
+            const response = await fetch(`/api/certificates?userId=${userId}&courseId=csharp`);
+            if (response.ok) {
+              const certificates = await response.json();
+              setHasCertificate(certificates.length > 0);
+            }
+          } catch (error) {
+            console.error("Error checking certificates:", error);
+          }
+        }
+      };
+    
+      checkCertificate();
+    }, [userId, progress, csharpLessons.length]);
+  
+  
+    // For generating certificates
+  const handleGenerateCertificate = async () => {
+    try {
+      const response = await fetch('/api/certificates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, courseId: 'csharp' })
+      });
+  
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate certificate');
+      }
+  
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `csharp_certificate.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error instanceof Error ? error.message : 'An unknown error occurred',
+      });
+    }
+  };
 
   const handleNavigation = (path: string) => {
     if (!user) {
@@ -305,6 +368,40 @@ export default function CsharpCourses() {
             </div>
           </div>
 
+          <div style={{ padding: '0 20px' }}>
+  {/* Certificate Button */}
+  <button
+    style={{
+      ...styles.certificateButton,
+      backgroundColor:
+        hasCertificate || (csharpLessons.length > 0 && Object.values(progress).filter(Boolean).length === csharpLessons.length)
+          ? styles.certificateButton.backgroundColor
+          : '#cccccc'
+    }}
+    onClick={handleGenerateCertificate}
+    disabled={
+      !hasCertificate &&
+      (csharpLessons.length === 0 || Object.values(progress).filter(Boolean).length !== csharpLessons.length)
+    }
+    title={
+      csharpLessons.length > 0 && Object.values(progress).filter(Boolean).length !== csharpLessons.length
+        ? `Complete ${csharpLessons.length - Object.values(progress).filter(Boolean).length} more lessons to unlock`
+        : ''
+    }
+  >
+    {hasCertificate ? 'Download Certificate' : 'Get Your Certificate'}
+  </button>
+
+  {/* Certificate Banner (shown when all lessons completed but no certificate yet) */}
+  {!hasCertificate &&
+    Object.values(progress).filter(Boolean).length === csharpLessons.length &&
+    csharpLessons.length > 0 && (
+      <div style={styles.certificateBanner}>
+        <div style={styles.certificateTitle}>Course Completed!</div>
+        <div style={styles.certificateText}>Congratulations! You've completed all csharp lessons.</div>
+      </div>
+    )}
+</div>
           <div style={styles.lessonList}>
             {csharpLessons.map((lesson) => (
               <div
@@ -701,4 +798,44 @@ const styles = {
     color: '#94a3b8',
     padding: '4rem 2rem',
   },
+  certificateButton: {
+    padding: '10px 20px',
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    margin: '10px 0',
+    transition: 'all 0.3s ease',
+    '&:hover': {
+      backgroundColor: '#45a049',
+    },
+    '&:disabled': {
+      backgroundColor: '#cccccc',
+      cursor: 'not-allowed',
+    }
+  },
+
+  certificateBanner: {
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    padding: '20px',
+    borderRadius: '8px',
+    margin: '20px 0',
+    textAlign: 'center' as const,
+    boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+  },
+
+  certificateTitle: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    marginBottom: '10px'
+  },
+
+  certificateText: {
+    fontSize: '16px',
+    marginBottom: '15px'
+  }
 };
