@@ -222,7 +222,7 @@ page.drawText(`Certificate ID: ${certificateID}`, {
 });
 
 // Verification Links
-page.drawText("Verify your certificate: https://codium.com/verify", {
+page.drawText("Verify your certificate: https://codium-ozy.vercel.app/verify", {
   x: 50,
   y: 90,
   size: 10,
@@ -234,7 +234,7 @@ page.drawText("or click the link below:", {
   size: 10,
   font: customFont,
 });
-page.drawText(`https://codium.com/api/certificates/verify?certificate_id=${certificateID}`, {
+page.drawText(`https://codium-ozy.vercel.app/api/certificates/verify?certificate_id=${certificateID}`, {
   x: 50,
   y: 60,
   size: 10,
